@@ -219,6 +219,10 @@ case "${1:-}" in
     shift
     exec "$BIN_DIR/engram-login" "$@"
     ;;
+  upgrade)
+    shift
+    exec "$BIN_DIR/engram-upgrade" "$@"
+    ;;
   logout)
     shift
     exec "$BIN_DIR/engram-logout" "$@"
