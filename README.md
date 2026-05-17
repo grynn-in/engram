@@ -4,7 +4,7 @@
 
 ```bash
 # Install
-curl -sSL https://raw.githubusercontent.com/YOUR_USER/engram/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/grynn-in/engram/main/install.sh | bash
 
 # Initialize in any project
 engram init
@@ -64,7 +64,7 @@ curl -fsSL https://ollama.com/install.sh | sh
 ollama pull nomic-embed-text
 
 # Install Engram
-git clone https://github.com/YOUR_USER/engram.git ~/.engram
+git clone https://github.com/grynn-in/engram.git ~/.engram
 cd ~/.engram && bash install.sh
 ```
 
