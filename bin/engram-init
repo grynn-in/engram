@@ -136,19 +136,30 @@ done
 
 # 6. Add memory protocol to CLAUDE.md if not present
 PROTOCOL_MARKER="## Engram"
+# A template may add its own guidance in claude.md.extra. The protocol block
+# itself is always generated from the registry, never copied from a template.
+TEMPLATE_EXTRA=""
+if [ -n "$TEMPLATE" ] && [ -n "${TEMPLATE_DIR:-}" ] && [ -f "$TEMPLATE_DIR/claude.md.extra" ]; then
+  TEMPLATE_EXTRA="$TEMPLATE_DIR/claude.md.extra"
+fi
+
 if [ ! -f CLAUDE.md ]; then
   {
     echo "# Project — Claude Code Reference"
     echo ""
     engram_protocol_block
+    [ -n "$TEMPLATE_EXTRA" ] && { echo ""; cat "$TEMPLATE_EXTRA"; }
   } > CLAUDE.md
   echo "  Created CLAUDE.md with Engram protocol"
+  [ -n "$TEMPLATE_EXTRA" ] && echo "  Added $TEMPLATE guidance to CLAUDE.md"
 elif ! grep -q "$PROTOCOL_MARKER" CLAUDE.md; then
   {
     echo ""
     engram_protocol_block
+    [ -n "$TEMPLATE_EXTRA" ] && { echo ""; cat "$TEMPLATE_EXTRA"; }
   } >> CLAUDE.md
   echo "  Appended Engram protocol to CLAUDE.md"
+  [ -n "$TEMPLATE_EXTRA" ] && echo "  Added $TEMPLATE guidance to CLAUDE.md"
 else
   echo "  CLAUDE.md already has Engram protocol — skipped"
 fi

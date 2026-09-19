@@ -228,7 +228,15 @@ def find_missing_topics() -> list[dict]:
 
             for match in link_pattern.finditer(content):
                 target = match.group(2).strip()
-                if target.endswith(".md") and not Path(target).exists():
+                if not target.endswith(".md"):
+                    continue
+                # External links and pure anchors are not memory pages.
+                if "://" in target or target.startswith(("#", "mailto:")):
+                    continue
+                # Relative links resolve against the linking file's directory,
+                # not the process CWD — resolving against CWD made every
+                # relative link look broken no matter where it pointed.
+                if not (f.parent / target).resolve().exists():
                     all_references[match.group(1).lower()].append(rel)
 
     # Find references that don't have corresponding files

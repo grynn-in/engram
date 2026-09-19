@@ -1,0 +1,8 @@
+# Template: product
+# Domain: product development decision-making
+
+[meta]
+name = "product"
+description = "Decision frameworks for product development (reversibility, HMD, ADR, RICE)"
+version = "0.1.0"
+tags = ["product", "decisions", "prioritisation", "architecture"]

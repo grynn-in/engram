@@ -130,8 +130,15 @@ version = "0.1.0"
 created = "$(date +%Y-%m-%d)"
 TOML
 
-  # Generate claude.md.snippet from the layer registry (never a stale copy)
-  engram_protocol_block > "$target/claude.md.snippet"
+  # Generate claude.md.snippet from the layer registry (never a stale copy).
+  # Template-specific guidance lives in claude.md.extra and is appended.
+  {
+    engram_protocol_block
+    if [ -f "$target/claude.md.extra" ]; then
+      echo ""
+      cat "$target/claude.md.extra"
+    fi
+  } > "$target/claude.md.snippet"
 
   echo ""
   echo "Template created: $target"

@@ -103,14 +103,37 @@ def test_protocol_block_covers_every_layer():
     print("  PASS: protocol block covers every layer")
 
 
-def test_generated_snippet_matches_generator():
-    """templates/default/claude.md.snippet is generated — it must not drift."""
-    snippet = (ROOT / "templates" / "default" / "claude.md.snippet").read_text()
-    assert snippet == protocol_block(), (
-        "templates/default/claude.md.snippet is stale.\n"
-        "Regenerate it: python3 lib/layers.py --protocol > templates/default/claude.md.snippet"
-    )
-    print("  PASS: generated snippet matches the registry")
+def test_generated_snippets_match_generator():
+    """Every claude.md.snippet is generated as protocol_block() + claude.md.extra."""
+    block = protocol_block()
+    checked = 0
+    for tpl in sorted((ROOT / "templates").iterdir()):
+        snippet = tpl / "claude.md.snippet"
+        if not snippet.is_file():
+            continue
+        extra = tpl / "claude.md.extra"
+        expected = block + ("\n" + extra.read_text() if extra.is_file() else "")
+        assert snippet.read_text() == expected, (
+            f"templates/{tpl.name}/claude.md.snippet is stale.\n"
+            f"It must equal `python3 lib/layers.py --protocol`"
+            + (f" followed by templates/{tpl.name}/claude.md.extra" if extra.is_file() else "")
+        )
+        checked += 1
+    assert checked >= 2, "expected at least the default and product snippets"
+    print(f"  PASS: {checked} generated snippets match the registry")
+
+
+def test_template_extra_has_no_protocol_block():
+    """claude.md.extra holds only template-specific guidance, never the protocol."""
+    for tpl in sorted((ROOT / "templates").iterdir()):
+        extra = tpl / "claude.md.extra"
+        if extra.is_file():
+            text = extra.read_text()
+            assert "## Engram" not in text, (
+                f"templates/{tpl.name}/claude.md.extra duplicates the protocol block; "
+                "it is generated and must not be copied"
+            )
+    print("  PASS: no template duplicates the protocol block")
 
 
 def test_no_hardcoded_layer_lists_in_commands():
@@ -167,7 +190,8 @@ if __name__ == "__main__":
     test_set_semantics()
     test_path_lookup_and_scoring()
     test_protocol_block_covers_every_layer()
-    test_generated_snippet_matches_generator()
+    test_generated_snippets_match_generator()
+    test_template_extra_has_no_protocol_block()
     test_no_hardcoded_layer_lists_in_commands()
     test_bash_shim_agrees_with_python()
 

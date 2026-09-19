@@ -1,0 +1,8 @@
+## D365 Shared Knowledge
+
+This project uses shared D365 F&O knowledge from the `d365` template.
+
+**When you learn something transferable about D365 F&O:**
+1. Update `semantic/` or `procedural/` in this project
+2. Use `engram sync . ~/.engram/pools/d365` to push back to the shared pool
+3. Keep project-specific details out — use placeholders like `<COMPANY>`, `<ENTITY>`

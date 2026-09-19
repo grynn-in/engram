@@ -101,6 +101,14 @@ engram init --template react   # Seeds React patterns (community)
 
 Templates pre-populate the transferable layers (`semantic/`, `procedural/`, `traps/`, `vision/`) with domain knowledge.
 
+| Template | What it seeds |
+|----------|---------------|
+| `product` | Decision frameworks: reversibility test, HMD option scoring, ADRs, RICE prioritisation, and the anti-patterns that waste the most time |
+| `d365` | Dynamics 365 Finance & Operations domain knowledge |
+| `react` | React, Next.js and modern frontend patterns |
+| `python` | Python project conventions |
+| `devops` | Deployment and infrastructure workflows |
+
 ### Session Workflow
 
 ```bash
