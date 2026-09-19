@@ -1,0 +1,11 @@
+.cache/
+
+# Session-local layers. This mirrors engram's own model: the transferable
+# layers (semantic, procedural, traps, vision) are durable project knowledge
+# and are tracked; the session layers are working state and raw transcripts,
+# and are not. See the `transferable` and `session` sets in lib/layers.py.
+active/
+lossless/
+
+# Generated state, not knowledge.
+*/.contradictions.jsonl

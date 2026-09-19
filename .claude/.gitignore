@@ -1,0 +1,3 @@
+# Symlinks into whichever engram install created them — absolute paths, so
+# machine-specific and broken for anyone else. `engram init` regenerates them.
+scripts/
