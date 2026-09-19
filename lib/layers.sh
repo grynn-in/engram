@@ -43,3 +43,16 @@ engram_protocol_block() {
 engram_layer_count() {
   python3 "$ENGRAM_LIB_DIR/layers.py" --count
 }
+
+# engram_sync_claude_md <path> — create or refresh the fenced protocol block.
+# Prints one of: created | updated | unchanged
+engram_sync_claude_md() {
+  python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import layers; print(layers.sync_claude_md(sys.argv[2]))' \
+    "$ENGRAM_LIB_DIR" "$1"
+}
+
+# engram_schema_digest <file> — digest used to detect an edited schema.md.
+engram_schema_digest() {
+  python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import layers; print(layers.schema_digest(sys.argv[2]))' \
+    "$ENGRAM_LIB_DIR" "$1"
+}

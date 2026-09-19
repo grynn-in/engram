@@ -23,7 +23,9 @@ Named sets (see layer_set):
   append_only   layers that are written once and never edited
 """
 
+import hashlib
 import json
+import re
 import sys
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -226,7 +228,8 @@ def protocol_block():
     priority = " → ".join(l.title for l in LAYERS)
     writes = "\n".join("- %s" % l.writes for l in LAYERS if l.curated or l.name == "active")
 
-    return """## Engram — {n}-Layer Memory System
+    return """{start}
+## Engram — {n}-Layer Memory System
 
 You have a {n}-layer memory system in `.claude/memory/`:
 
@@ -244,7 +247,66 @@ You have a {n}-layer memory system in `.claude/memory/`:
 **Update rules**:
 {writes}
 - Never delete memory files — supersede or append with dates
-""".format(n=LAYER_COUNT, rows="\n".join(rows), priority=priority, writes=writes)
+{end}
+""".format(n=LAYER_COUNT, rows="\n".join(rows), priority=priority, writes=writes,
+           start=PROTOCOL_START, end=PROTOCOL_END)
+
+
+# The generated block is fenced so it can be refreshed in place on an upgrade
+# without touching anything a project added around it.
+PROTOCOL_START = "<!-- engram:protocol:start -->"
+PROTOCOL_END = "<!-- engram:protocol:end -->"
+# Projects initialised before the fences existed have a bare "## Engram" heading.
+LEGACY_HEADING = re.compile(r"^## Engram\b.*$", re.MULTILINE)
+
+
+def sync_claude_md(path) -> str:
+    """Create or refresh the Engram protocol block in a project's CLAUDE.md.
+
+    Returns "created", "updated" or "unchanged".
+
+    Upgrades matter here: before this existed, init saw an existing
+    "## Engram" heading and skipped, so a project initialised under an older
+    version kept a protocol table that did not mention the newer layers. The
+    directories were created and Claude was never told they existed.
+    """
+    path = Path(path)
+    block = protocol_block().rstrip("\n")
+
+    if not path.exists():
+        path.write_text("# Project — Claude Code Reference\n\n" + block + "\n")
+        return "created"
+
+    text = path.read_text()
+
+    if PROTOCOL_START in text and PROTOCOL_END in text:
+        start = text.index(PROTOCOL_START)
+        end = text.index(PROTOCOL_END) + len(PROTOCOL_END)
+        updated = text[:start] + block + text[end:]
+    else:
+        match = LEGACY_HEADING.search(text)
+        if match:
+            # Replace from the heading to the next same-level heading, or EOF.
+            rest = text[match.end():]
+            nxt = re.search(r"^## ", rest, re.MULTILINE)
+            stop = match.end() + (nxt.start() if nxt else len(rest))
+            updated = text[:match.start()] + block + "\n\n" + text[stop:]
+        else:
+            sep = "" if text.endswith("\n\n") else ("\n" if text.endswith("\n") else "\n\n")
+            updated = text + sep + block + "\n"
+
+    updated = re.sub(r"\n{3,}", "\n\n", updated)
+    if updated == text:
+        return "unchanged"
+    path.write_text(updated)
+    return "updated"
+
+
+def schema_digest(path) -> str:
+    """sha256 of a file's contents, used to tell a pristine schema.md from an
+    edited one. Takes a path — hashing the path string instead of the file is
+    a silent no-op that makes every comparison fail."""
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def _main(argv):

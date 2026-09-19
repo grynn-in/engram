@@ -1,6 +1,6 @@
 {
   "name": "engram-memory",
-  "version": "0.6.0",
+  "version": "0.8.0",
   "description": "Persistent 5-layer memory system for Claude Code and AI coding agents",
   "bin": {
     "engram": "./bin/engram-npx.js"
