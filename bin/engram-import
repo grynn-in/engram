@@ -9,13 +9,18 @@
 # Behavior:
 #   --merge (default): new files are added, existing files are kept unless
 #                      the imported version is newer (by content, not mtime)
-#   --replace:         wipes semantic/ procedural/ active/ and replaces with archive
+#   --replace:         wipes every memory layer and replaces with archive
 #
 # After import:
 #   - Embedding cache rebuilds automatically on next search (~5-30s)
 #   - Run 'engram start "topic"' to load context
 
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+# Layer registry — single source of truth for memory layers
+# shellcheck source=../lib/layers.sh
+source "$SCRIPT_DIR/../lib/layers.sh"
 
 MEMORY_ROOT=".claude/memory"
 
@@ -67,7 +72,9 @@ fi
 # Initialize if needed
 if [ ! -d "$MEMORY_ROOT" ]; then
   echo "Memory not initialized. Creating structure..."
-  mkdir -p "$MEMORY_ROOT"/{active,semantic,procedural,lossless}
+  for layer in $(engram_layers all); do
+    mkdir -p "$MEMORY_ROOT/$layer"
+  done
 fi
 
 # Import based on mode
@@ -76,7 +83,7 @@ if [ "$MODE" = "replace" ]; then
   echo ""
 
   # Remove existing layers (keep .cache — it'll be invalidated anyway)
-  for layer in semantic procedural active lossless; do
+  for layer in $(engram_layers all); do
     if [ -d "$MEMORY_ROOT/$layer" ]; then
       rm -rf "$MEMORY_ROOT/$layer"
     fi
@@ -104,7 +111,7 @@ else
   NEW=0
   SKIPPED=0
 
-  for layer in semantic procedural active lossless; do
+  for layer in $(engram_layers all); do
     src_dir="$IMPORTED_MEMORY/$layer"
     tgt_dir="$MEMORY_ROOT/$layer"
 
@@ -147,7 +154,7 @@ fi
 # Report final state
 echo ""
 echo "Memory state after import:"
-for layer in semantic procedural active lossless; do
+for layer in $(engram_layers all); do
   if [ -d "$MEMORY_ROOT/$layer" ]; then
     count=$(find "$MEMORY_ROOT/$layer" -type f 2>/dev/null | wc -l)
     printf "  %-12s %d files\n" "$layer/" "$count"

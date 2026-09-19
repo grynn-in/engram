@@ -1,0 +1,15 @@
+## Product Decisions
+
+This project uses the `product` decision frameworks from the `product` template.
+
+**Before making a product or architecture call:**
+1. Start at `procedural/run-a-decision.md` — it routes to the right instrument
+2. Classify reversibility first; two-way doors get a bias to action, not a table
+3. Record the outcome in `vision/` with an owner, a date and the option rejected
+
+**Never** attribute a decision to someone who did not make it. If a prior
+decision cannot be traced to a person, write "provenance unknown" rather than
+building on it as though it were chosen.
+
+Known failure modes live in `traps/decision-anti-patterns.md` — read it before
+your first decision here, not after.

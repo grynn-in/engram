@@ -18,6 +18,11 @@ import sys
 import json
 import re
 from pathlib import Path
+
+# Layer registry — single source of truth for memory layers
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
+from layers import is_skipped
+from layers import CURATED_LAYERS  # noqa: E402
 from datetime import datetime
 import urllib.request
 import urllib.error
@@ -75,6 +80,8 @@ def extract_sessions(lossless_dir: Path) -> list:
     sessions = []
 
     for f in sorted(lossless_dir.rglob("*.md")):
+        if is_skipped(f):
+            continue
         try:
             content = f.read_text(encoding="utf-8", errors="ignore")
         except Exception:
@@ -110,15 +117,17 @@ def extract_sessions(lossless_dir: Path) -> list:
 
 
 def find_related_files(memory_root: Path, query_emb: list, top_n: int = 3) -> list:
-    """Find semantic/procedural files related to the query."""
+    """Find curated knowledge files related to the query."""
     related = []
 
-    for layer in ("semantic", "procedural"):
+    for layer in CURATED_LAYERS:
         layer_dir = memory_root / layer
         if not layer_dir.is_dir():
             continue
 
         for f in layer_dir.rglob("*.md"):
+            if is_skipped(f):
+                continue
             try:
                 content = f.read_text(encoding="utf-8", errors="ignore")
                 if len(content) < 30:
@@ -198,7 +207,7 @@ def main():
             print("  2. Embeds it via Ollama (nomic-embed-text)")
             print("  3. Searches lossless/ for similar past sessions")
             print("  4. Returns top 5 most relevant past sessions")
-            print("  5. Suggests related semantic/procedural files")
+            print("  5. Suggests related knowledge files")
             return
         i += 1
 
@@ -272,7 +281,7 @@ def main():
     scored_sessions.sort(key=lambda x: -x["score"])
     top_sessions = scored_sessions[:MAX_RESULTS]
 
-    # Find related semantic/procedural files
+    # Find related curated knowledge files
     if not json_mode:
         print("Finding related knowledge files...", file=sys.stderr)
     related_files = find_related_files(memory_root, context_emb)

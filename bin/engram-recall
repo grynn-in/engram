@@ -4,7 +4,7 @@ Engram Recall — Date-aware natural language search over memory layers.
 
 Parses natural language date expressions and searches lossless/ files by
 filename date pattern (YYYY-MM-DD_HHMM.md or YYYY-MM-DD.md), and
-semantic/procedural files by mtime.
+curated knowledge files by mtime.
 
 Usage:
   engram recall "what did I do last Tuesday"
@@ -20,6 +20,11 @@ import sys
 import re
 import json
 from pathlib import Path
+
+# Layer registry — single source of truth for memory layers
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
+from layers import is_skipped
+from layers import SEARCHABLE_LAYERS  # noqa: E402
 from datetime import datetime, timedelta
 
 
@@ -217,6 +222,8 @@ def search_by_date_range(memory_root: Path, start_dt: datetime, end_dt: datetime
     lossless_dir = memory_root / "lossless"
     if lossless_dir.is_dir():
         for f in sorted(lossless_dir.rglob("*.md")):
+            if is_skipped(f):
+                continue
             file_dt = date_from_filename(f.name)
             if file_dt and start_dt <= file_dt <= end_dt:
                 try:
@@ -231,12 +238,14 @@ def search_by_date_range(memory_root: Path, start_dt: datetime, end_dt: datetime
                 except Exception:
                     pass
 
-    # 2. Search semantic/ and procedural/ by mtime
-    for layer in ("semantic", "procedural", "active"):
+    # 2. Search the curated + working layers by mtime
+    for layer in SEARCHABLE_LAYERS:
         layer_dir = memory_root / layer
         if not layer_dir.is_dir():
             continue
         for f in sorted(layer_dir.rglob("*.md")):
+            if is_skipped(f):
+                continue
             try:
                 mtime = datetime.fromtimestamp(f.stat().st_mtime)
                 if start_dt <= mtime <= end_dt:

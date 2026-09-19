@@ -15,7 +15,8 @@ import sys
 from pathlib import Path
 
 
-LAYERS = ['active', 'semantic', 'procedural', 'lossless']
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
+from layers import ALL_LAYERS as LAYERS  # noqa: E402
 
 
 def find_memory_root():
@@ -39,9 +40,13 @@ def convert_to_wikilinks(content, all_files):
         if path.startswith('http') or not path.endswith('.md'):
             return m.group(0)
         stem = Path(path).stem
-        if stem in all_files:
-            return f"[[{stem}]]"
-        return f"[[{stem}]]"
+        if stem not in all_files:
+            # Target is not in the vault — a wikilink would create a phantom
+            # page in Obsidian. Both branches used to return the same wikilink,
+            # so this check did nothing.
+            return m.group(0)
+        # Keep the link label as an Obsidian alias when it adds information.
+        return f"[[{stem}]]" if text.strip() == stem else f"[[{stem}|{text}]]"
 
     content = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', replace_md_link, content)
 

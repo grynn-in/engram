@@ -2,7 +2,7 @@
 
 ## Overview
 
-Engram is a 5-layer hierarchical memory system for Claude Code that provides cross-session recall via local semantic embeddings and structured knowledge layers.
+Engram is a 7-layer hierarchical memory system for Claude Code that provides cross-session recall via local semantic embeddings and structured knowledge layers.
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -14,8 +14,16 @@ Engram is a 5-layer hierarchical memory system for Claude Code that provides cro
 ├─────────────────────────────────────────────────┤
 │  Layer 4: Procedural (workflows, how-tos)       │  Searchable
 ├─────────────────────────────────────────────────┤
-│  Layer 5: Active (today's context)              │  Mutable
+│  Layer 5: Traps (lessons learned the hard way)  │  Searchable
+├─────────────────────────────────────────────────┤
+│  Layer 6: Vision (direction, non-goals, why)    │  Searchable
+├─────────────────────────────────────────────────┤
+│  Layer 7: Active (today's context)              │  Mutable
 └─────────────────────────────────────────────────┘
+
+Layers are defined once, in `lib/layers.py`. Every command reads the set it
+needs from there (`all`, `curated`, `searchable`, `transferable`, `shared`,
+`session`, `append_only`); no command hardcodes a layer name.
 ```
 
 ## Data Flow
@@ -143,7 +151,29 @@ Contains step-by-step processes, standards, and how-to guides. Examples:
 
 Distinct from semantic: procedural = "how to do X", semantic = "what X is / what we know about X".
 
-### Layer 5: Active (Today's Context)
+### Layer 5: Traps (Lessons Learned the Hard Way)
+
+**Path**: `memory/traps/*.md`
+
+Contains the things that cost time — each with the symptom as seen, the real
+cause, roughly what it cost, and the check that catches it next time. Scored
+highest in search (+15%): re-learning a trap is the most expensive failure.
+
+Distinct from semantic: a trap is knowledge you only got by being bitten.
+A fact that was never surprising belongs in semantic/.
+
+### Layer 6: Vision (Direction & Non-Goals)
+
+**Path**: `memory/vision/*.md`
+
+Contains intent: what this is trying to become, what it is deliberately not
+doing, who decided, and what would reopen the decision. Its job is to stop a
+future session quietly undoing a deliberate choice.
+
+Distinct from procedural: vision is "why we chose this", procedural is "how to
+do it".
+
+### Layer 7: Active (Today's Context)
 
 **Path**: `memory/active/`
 
@@ -155,7 +185,7 @@ Overwritten each session. Not meant for long-term storage.
 
 ## Knowledge Pools & Sync
 
-Engram supports **shared knowledge pools** — directories of semantic/procedural files that can be synced across multiple projects.
+Engram supports **shared knowledge pools** — directories of transferable-layer files that can be synced across multiple projects.
 
 ```
 ~/.engram/pools/

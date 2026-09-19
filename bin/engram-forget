@@ -17,6 +17,10 @@ import sys
 from datetime import date
 from pathlib import Path
 
+# Layer registry — single source of truth for memory layers
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
+from layers import SEARCHABLE_LAYERS  # noqa: E402
+
 
 def find_memory_root():
     """Find .claude/memory/ starting from cwd, walking up."""
@@ -33,7 +37,7 @@ def search_files(memory_root, topic):
     """Search memory files for topic matches (filename or content)."""
     matches = []
     topic_lower = topic.lower()
-    searchable_layers = ['semantic', 'procedural', 'active']
+    searchable_layers = SEARCHABLE_LAYERS
 
     for layer in searchable_layers:
         layer_dir = memory_root / layer
@@ -61,7 +65,7 @@ def supersede_file(filepath, memory_root, reason=None, dry_run=False):
     """Mark a file as superseded and move to .archive/."""
     today = date.today().isoformat()
     rel = filepath.relative_to(memory_root)
-    layer = rel.parts[0]  # e.g., 'semantic', 'procedural'
+    layer = rel.parts[0]  # one of ALL_LAYERS
 
     # Determine archive path
     archive_dir = memory_root / layer / ".archive"
@@ -113,7 +117,7 @@ def supersede_file(filepath, memory_root, reason=None, dry_run=False):
 def update_references(memory_root, filename, original_layer):
     """Update references pointing to the superseded file."""
     stem = Path(filename).stem
-    searchable_layers = ['semantic', 'procedural', 'active']
+    searchable_layers = SEARCHABLE_LAYERS
     patterns = [
         re.compile(re.escape(filename)),
         re.compile(r'\[\[' + re.escape(stem) + r'\]\]'),

@@ -29,6 +29,8 @@ from pathlib import Path
 # Add lib/ to path for embeddings provider support
 SCRIPT_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(SCRIPT_DIR.parent / "lib"))
+from layers import is_skipped
+from layers import search_bonus
 
 # ---------------------------------------------------------------------------
 # Configuration (defaults, overridden by config.toml if present)
@@ -158,7 +160,7 @@ def quality_score(text: str, file_path: Path) -> float:
     Quality factors:
     - Length bonus: chunks > 200 chars get +10%, > 500 chars get +20%
     - Structure bonus: has headings (+5%), has code blocks (+10%), has lists (+5%)
-    - Layer bonus: semantic (+10%), procedural (+5%), active (0%), lossless (-10%)
+    - Layer bonus: per-layer, from the registry in lib/layers.py
 
     Returns a multiplier (typically 0.9 to 1.4).
     """
@@ -184,16 +186,8 @@ def quality_score(text: str, file_path: Path) -> float:
        re.search(r'^\s*\d+[.)]\s+', text, re.MULTILINE):
         multiplier += 0.05
 
-    # Layer bonus — determine from file path
-    path_str = str(file_path)
-    if '/semantic/' in path_str:
-        multiplier += 0.10
-    elif '/procedural/' in path_str:
-        multiplier += 0.05
-    elif '/active/' in path_str:
-        pass  # 0% bonus
-    elif '/lossless/' in path_str:
-        multiplier -= 0.10
+    # Layer bonus — from the layer registry (lib/layers.py)
+    multiplier += search_bonus(file_path)
 
     # Frontmatter-based scoring (confidence + urgency)
     try:
@@ -608,7 +602,7 @@ def search(query: str, memory_root: Path, force_chunks: bool = False, limit: int
     # Collect markdown file candidates
     candidates = []
     for file_path in sorted(memory_root.rglob("*.md")):
-        if ".cache" in str(file_path):
+        if is_skipped(file_path):
             continue
         try:
             content = file_path.read_text(encoding="utf-8", errors="ignore")

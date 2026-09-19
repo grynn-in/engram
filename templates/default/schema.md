@@ -72,6 +72,60 @@ structured, and governance rules for the LLM maintaining the knowledge base.
 
 ---
 
+### traps/ — Lessons Learned the Hard Way
+
+**Purpose**: The things that cost you time. A trap is knowledge you only get by
+being bitten, and it is the most expensive knowledge to re-learn — which is why
+`engram search` scores this layer highest.
+
+**Each file should contain**:
+- A `# Title` naming the trap from the victim's point of view, not the fix
+  ("Silent truncation at 1800 chars", not "Set max_chars correctly")
+- **Symptom** — what you actually saw. The error text, the wrong number, the
+  silence. Written so a future search for the symptom finds this file.
+- **Cause** — the real mechanism, not the guess you had first
+- **Cost** — roughly how long it took to find. This is what ranks traps against
+  each other; without it a reader cannot tell a papercut from a week lost.
+- **Avoid** — the check, test, or assertion that catches it next time
+- **Discovered** — a date, and the commit/session if you have it
+
+**Naming**: `{component}-{symptom}.md`
+- Good: `qdrant-silent-empty-results.md`, `ollama-truncates-long-chunks.md`
+- Bad: `bug1.md`, `gotchas.md`, `lessons.md`
+
+**Do NOT put here**: Facts that were never surprising (→ semantic/), the
+step-by-step fix on its own (→ procedural/, and link to it from the trap),
+a bug you are still actively fixing (→ active/ until it is understood)
+
+**Rule**: a trap without a Cause is a complaint. If you do not yet know why it
+happened, leave it in active/ until you do.
+
+---
+
+### vision/ — Where This Is Going
+
+**Purpose**: Direction and intent. The "why" behind decisions, so a future
+session does not quietly undo a deliberate choice.
+
+**Each file should contain**:
+- A `# Title` naming the goal or the decision
+- **Intent** — what we are trying to make true
+- **Non-goals** — what we are deliberately not doing, and why. This is the part
+  that actually prevents rework.
+- **Owner and date** — who decided, and when
+- **Alternatives rejected** — what else was considered, and the reason it lost
+- **Revisit when** — the condition that would reopen the decision
+
+**Naming**: `{decision-or-goal}.md`
+- Good: `no-cloud-by-default.md`, `single-layer-registry.md`
+- Bad: `plans.md`, `ideas.md`, `roadmap.md` (too broad — split by decision)
+
+**Do NOT put here**: Task lists (→ active/), how a thing works today
+(→ semantic/), a decision nobody actually made — never attribute a choice to a
+person who did not make it; if the provenance is lost, say so in the file.
+
+---
+
 ## Governance Rules
 
 1. **Never delete** — supersede with newer files or append "[SUPERSEDED]" to title
@@ -82,6 +136,8 @@ structured, and governance rules for the LLM maintaining the knowledge base.
 6. **Cross-reference** — run `engram xref` periodically to link related files
 7. **Lint regularly** — run `engram lint` to find stale/orphan content
 8. **Compound discoveries** — run `engram compound "topic"` when you notice scattered knowledge
+9. **Attribute decisions** — anything in vision/ names who decided and when, or says the provenance is unknown
+10. **Price your traps** — every file in traps/ carries a Cost, or it cannot be ranked
 
 ## Anti-Patterns
 
@@ -90,3 +146,5 @@ structured, and governance rules for the LLM maintaining the knowledge base.
 - Mixing facts and instructions in one file — split into semantic + procedural
 - Leaving stale "TODO" or "in progress" in semantic/ — that belongs in active/
 - Writing session-specific details in semantic/ — use lossless/ for raw history
+- A trap with no Cause — that is a complaint, keep it in active/ until understood
+- Aspirational entries in vision/ that nobody decided — direction needs an owner

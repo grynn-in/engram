@@ -1,0 +1,7 @@
+# sha256 of every schema.md engram has shipped, newest last.
+# engram init refreshes a project's schema.md only when its digest is
+# listed here — i.e. the project never edited it. Append a line whenever
+# templates/default/schema.md changes; tests/test_init.py enforces it.
+
+4d9bb019b5bd0bd1bad091bae5dc8336768d22f341de3352fe3631e2496a9b85  # 82f32da
+996add1a748ea4719e98266506a47c9d0e615a25d252441c91a2fdf874f2a0b9  # 854ec75

@@ -25,6 +25,8 @@ from pathlib import Path
 # Add lib/ to path
 SCRIPT_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(SCRIPT_DIR.parent / "lib"))
+from layers import is_skipped
+from layers import ALL_LAYERS
 
 from qdrant import QdrantClient, QdrantError
 
@@ -46,25 +48,37 @@ def load_config():
         return
 
     try:
-        content = Path(config_path).read_text()
-        for line in content.splitlines():
+        section = ""
+        for line in Path(config_path).read_text().splitlines():
             line = line.strip()
-            if not line or line.startswith("#") or line.startswith("["):
+            if not line or line.startswith("#"):
+                continue
+            if line.startswith("["):
+                # Track the section explicitly. The previous version guessed it
+                # with content.find(key), which always located the FIRST "url"
+                # in the file — so both the [embedding] and [vector_db] urls
+                # were silently discarded and the hardcoded defaults used.
+                section = line.strip("[]").strip()
                 continue
             if "=" not in line:
                 continue
             key, val = line.split("=", 1)
             key = key.strip()
-            val = val.strip().strip('"').strip("'")
+            val = val.split("#", 1)[0].strip().strip('"').strip("'")
 
-            if key == "url" and "qdrant" in content[:content.find(key)].rsplit("[", 1)[-1]:
+            if key == "url" and section == "vector_db":
                 QDRANT_URL = val
-            elif key == "model":
+            elif key == "url" and section == "embedding":
+                # embeddings.py takes a bare host; this module holds the endpoint.
+                OLLAMA_URL = val.rstrip("/") + "/api/embeddings"
+            elif key == "model" and section == "embedding":
                 EMBEDDING_MODEL = val
             elif key == "vector_size":
                 VECTOR_SIZE = int(val)
-    except Exception:
-        pass
+    except Exception as exc:
+        # Never silently accept a config we could not read — the symptom
+        # otherwise is indexing against the wrong host with no clue why.
+        print(f"Warning: could not parse {config_path}: {exc}", file=sys.stderr)
 
 
 load_config()
@@ -184,7 +198,7 @@ def index_memory(memory_root: Path, client: QdrantClient, collection: str, incre
 
     # Collect files
     files = sorted(memory_root.rglob("*.md"))
-    files = [f for f in files if ".cache" not in str(f)]
+    files = [f for f in files if not is_skipped(f)]
 
     if not files:
         print("No memory files found.")
@@ -211,7 +225,7 @@ def index_memory(memory_root: Path, client: QdrantClient, collection: str, incre
 
         # Determine layer from path
         layer = "unknown"
-        for l in ["active", "semantic", "procedural", "lossless"]:
+        for l in ALL_LAYERS:
             if f"/{l}/" in str(file_path) or str(file_path).endswith(f"/{l}"):
                 layer = l
                 break
@@ -300,7 +314,7 @@ def show_status(client: QdrantClient, collection: str):
     print(f"Chunks indexed: {count}")
 
     # Show layer breakdown
-    for layer in ["semantic", "procedural", "active", "lossless"]:
+    for layer in ALL_LAYERS:
         try:
             filter_ = {"must": [{"key": "layer", "match": {"value": layer}}]}
             # Use scroll with filter to count

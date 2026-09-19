@@ -15,6 +15,10 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
+# Layer registry — single source of truth for memory layers
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
+from layers import ALL_LAYERS, APPEND_ONLY_LAYERS  # noqa: E402
+
 # ANSI colors
 RED = '\033[31m'
 GREEN = '\033[32m'
@@ -120,7 +124,7 @@ def cmd_since_last(memory_root):
 
     print(f"{BOLD}Changes since last checkpoint ({last_date}):{RESET}\n")
 
-    layers = ['active', 'semantic', 'procedural']
+    layers = [l for l in ALL_LAYERS if l not in APPEND_ONLY_LAYERS]
     has_changes = False
 
     for layer in layers:
@@ -163,7 +167,7 @@ def cmd_between_dates(memory_root, date1_str, date2_str):
 
     print(f"{BOLD}Changes between {date1} and {date2}:{RESET}\n")
 
-    layers = ['active', 'semantic', 'procedural', 'lossless']
+    layers = ALL_LAYERS
     has_changes = False
 
     for layer in layers:

@@ -2,8 +2,8 @@
 """
 Engram Sync — transfer knowledge between memory locations.
 
-Copies semantic/ and procedural/ layers (transferable knowledge).
-Skips active/ and lossless/ by default (session-specific).
+Copies the transferable layers (durable, project-portable knowledge).
+Skips session-specific layers by default. Both sets live in lib/layers.py.
 Invalidates stale embedding caches at the target.
 
 Usage:
@@ -27,16 +27,17 @@ import sys
 import shutil
 from pathlib import Path
 
-TRANSFERABLE_LAYERS = ["semantic", "procedural"]
-ALL_LAYERS = ["semantic", "procedural", "lossless", "active"]
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
+from layers import is_skipped
+from layers import ALL_LAYERS, TRANSFERABLE_LAYERS  # noqa: E402
 
 
 def resolve_memory_root(path_str: str) -> Path:
     """Resolve a user-provided path to the memory root directory."""
     p = Path(path_str).expanduser().resolve()
 
-    # Direct memory root (has semantic/ or procedural/ children)
-    if (p / "semantic").is_dir() or (p / "procedural").is_dir():
+    # Direct memory root (has any layer directory as a child)
+    if any((p / layer).is_dir() for layer in ALL_LAYERS):
         return p
 
     # Project root with .claude/memory/
@@ -67,7 +68,7 @@ def sync_layer(source_root: Path, target_root: Path, layer: str, dry_run: bool) 
     for src_file in sorted(source_dir.rglob("*")):
         if src_file.is_dir():
             continue
-        if ".cache" in str(src_file):
+        if is_skipped(src_file):
             continue
 
         rel = src_file.relative_to(source_dir)

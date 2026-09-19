@@ -7,14 +7,42 @@ Templates let you pre-seed projects with domain-specific knowledge.
 ```
 templates/my-template/
 ├── seed.toml              # Required: template metadata
-├── claude.md.snippet      # Optional: text to append to CLAUDE.md
+├── claude.md.extra        # Optional: template-specific guidance for CLAUDE.md
+├── claude.md.snippet      # Generated: protocol block + claude.md.extra
 ├── semantic/              # Optional: pre-seeded facts
 │   ├── domain-patterns.md
 │   └── common-issues.md
-└── procedural/            # Optional: pre-seeded workflows
-    ├── setup-guide.md
-    └── deployment.md
+├── procedural/            # Optional: pre-seeded workflows
+│   ├── setup-guide.md
+│   └── deployment.md
+├── traps/                 # Optional: pre-seeded hard-won lessons
+│   └── known-pitfalls.md
+└── vision/                # Optional: pre-seeded direction & decisions
+    └── design-principles.md
 ```
+
+A template may seed any **transferable** layer — `semantic/`, `procedural/`,
+`traps/` and `vision/`. The set comes from `lib/layers.py`; nothing here
+hardcodes it.
+
+### claude.md.extra vs claude.md.snippet
+
+`claude.md.extra` is the only part you write. It holds guidance specific to
+this template and must **not** contain the Engram protocol block — that block
+is generated from the layer registry, so a copied one would go stale the moment
+a layer is added.
+
+`claude.md.snippet` is generated as `protocol block + claude.md.extra`, for
+anyone who wants the whole thing to paste. `engram init --template <name>`
+writes the generated protocol block and then appends `claude.md.extra`.
+Regenerate the snippet with:
+
+```bash
+{ python3 lib/layers.py --protocol; echo; cat templates/my-template/claude.md.extra; } \
+  > templates/my-template/claude.md.snippet
+```
+
+`tests/test_layers.py` fails if a snippet drifts from its generator.
 
 ## seed.toml Format
 

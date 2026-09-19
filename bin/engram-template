@@ -12,6 +12,9 @@ set -euo pipefail
 ENGRAM_HOME="${ENGRAM_HOME:-$HOME/.engram}"
 TEMPLATES_DIR="$ENGRAM_HOME/templates"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+# Layer registry — single source of truth for memory layers
+# shellcheck source=../lib/layers.sh
+source "$SCRIPT_DIR/../lib/layers.sh"
 # Also check repo templates
 REPO_TEMPLATES="$SCRIPT_DIR/../templates"
 
@@ -27,7 +30,7 @@ Usage:
 
 Templates are stored in: ~/.engram/templates/
 
-Creating a template exports semantic/ and procedural/ from the current project,
+Creating a template exports the transferable layers from the current project,
 scrubbing project-specific details (interactive).
 EOF
 }
@@ -52,12 +55,15 @@ cmd_list() {
         desc=$(grep "^description" "$dir/seed.toml" 2>/dev/null | head -1 | sed 's/.*= *"//;s/"//' || echo "")
       fi
 
-      local sem_count proc_count
-      sem_count=$(find "$dir/semantic" -name "*.md" -type f 2>/dev/null | wc -l)
-      proc_count=$(find "$dir/procedural" -name "*.md" -type f 2>/dev/null | wc -l)
+      local counts=""
+      for layer in $(engram_layers transferable); do
+        local n
+        n=$(find "$dir/$layer" -name "*.md" -type f 2>/dev/null | wc -l | tr -d ' ')
+        [ "$n" -gt 0 ] && counts="${counts:+$counts, }$layer: $n"
+      done
 
       printf "  %-20s %s\n" "$name" "$desc"
-      printf "  %-20s semantic: %d, procedural: %d\n" "" "$sem_count" "$proc_count"
+      printf "  %-20s %s\n" "" "${counts:-empty}"
       echo ""
       found=true
     done
@@ -95,29 +101,21 @@ cmd_create() {
   echo "Creating template '$name' from current project memory..."
   echo ""
 
-  mkdir -p "$target/semantic" "$target/procedural"
-
-  # Copy semantic files
-  local sem_count=0
-  if [ -d "$memory_root/semantic" ]; then
-    for f in "$memory_root/semantic/"*.md; do
-      [ -f "$f" ] || continue
-      cp "$f" "$target/semantic/"
-      sem_count=$((sem_count + 1))
-      echo "  + semantic/$(basename "$f")"
-    done
-  fi
-
-  # Copy procedural files
-  local proc_count=0
-  if [ -d "$memory_root/procedural" ]; then
-    for f in "$memory_root/procedural/"*.md; do
-      [ -f "$f" ] || continue
-      cp "$f" "$target/procedural/"
-      proc_count=$((proc_count + 1))
-      echo "  + procedural/$(basename "$f")"
-    done
-  fi
+  # Copy every transferable layer (see lib/layers.py)
+  local summary=""
+  for layer in $(engram_layers transferable); do
+    mkdir -p "$target/$layer"
+    local count=0
+    if [ -d "$memory_root/$layer" ]; then
+      for f in "$memory_root/$layer/"*.md; do
+        [ -f "$f" ] || continue
+        cp "$f" "$target/$layer/"
+        count=$((count + 1))
+        echo "  + $layer/$(basename "$f")"
+      done
+    fi
+    summary="${summary}  $(printf '%-12s' "$layer:") $count files"$'\n'
+  done
 
   # Generate seed.toml
   cat > "$target/seed.toml" << TOML
@@ -132,15 +130,19 @@ version = "0.1.0"
 created = "$(date +%Y-%m-%d)"
 TOML
 
-  # Copy claude.md.snippet if exists in default template
-  if [ -f "$REPO_TEMPLATES/default/claude.md.snippet" ]; then
-    cp "$REPO_TEMPLATES/default/claude.md.snippet" "$target/claude.md.snippet"
-  fi
+  # Generate claude.md.snippet from the layer registry (never a stale copy).
+  # Template-specific guidance lives in claude.md.extra and is appended.
+  {
+    engram_protocol_block
+    if [ -f "$target/claude.md.extra" ]; then
+      echo ""
+      cat "$target/claude.md.extra"
+    fi
+  } > "$target/claude.md.snippet"
 
   echo ""
   echo "Template created: $target"
-  echo "  semantic:   $sem_count files"
-  echo "  procedural: $proc_count files"
+  printf '%s' "$summary"
   echo ""
   echo "IMPORTANT: Review files for project-specific content."
   echo "Replace company names, URLs, etc. with placeholders:"
@@ -230,11 +232,11 @@ cmd_info() {
   fi
 
   echo "--- Files ---"
-  for layer in semantic procedural; do
+  for layer in $(engram_layers transferable); do
     if [ -d "$dir/$layer" ]; then
       local count
-      count=$(find "$dir/$layer" -name "*.md" -type f 2>/dev/null | wc -l)
-      echo "  $layer/: $count files"
+      count=$(find "$dir/$layer" -name "*.md" -type f 2>/dev/null | wc -l | tr -d ' ')
+      printf "  %-12s %s files\n" "$layer/:" "$count"
       find "$dir/$layer" -name "*.md" -type f 2>/dev/null | while read -r f; do
         local size
         size=$(wc -c < "$f" | tr -d ' ')

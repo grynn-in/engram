@@ -26,14 +26,15 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 
-# Import search function
+# Import search function. Both submodules must be imported before first use:
+# importlib.machinery is not pulled in by `import importlib.util`.
+import importlib.machinery
 import importlib.util
+
 _loader = importlib.machinery.SourceFileLoader("engram_search", str(SCRIPT_DIR / "engram-search"))
 _spec = importlib.util.spec_from_loader("engram_search", _loader)
 engram_search = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(engram_search)
-
-import importlib.machinery
 
 MEMORY_ROOT = Path(".claude/memory")
 
@@ -85,10 +86,43 @@ def synthesize_page(topic: str, chunks: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def chunks_from_files(result: dict, memory_root: Path, max_chars: int = 1500) -> list[dict]:
+    """Build chunk-shaped items from file-level hits.
+
+    search() only emits chunks for files above the chunking threshold, so on a
+    memory of short notes `chunks` is empty even when `files` is full. Without
+    this fallback, compound reports "no results" in exactly the case where
+    search worked best.
+    """
+    items = []
+    for hit in result.get("files", []):
+        rel = hit.get("file", "")
+        if not rel:
+            continue
+        try:
+            text = (memory_root.parent / rel).read_text(
+                encoding="utf-8", errors="ignore").strip()
+        except OSError:
+            # Fall back to the preview search already produced.
+            text = hit.get("preview", "")
+        heading = ""
+        for line in text.splitlines():
+            if line.startswith("# "):
+                heading = line[2:].strip()
+                break
+        items.append({
+            "file": rel,
+            "score": hit.get("score", 0),
+            "heading": heading or Path(rel).stem.replace("-", " ").title(),
+            "context": rel,
+            "text": text[:max_chars],
+        })
+    return items
+
+
 def should_compound(search_result: dict) -> bool:
     """Determine if search results warrant a compounded page."""
     chunks = search_result.get("chunks", [])
-    files = search_result.get("files", [])
 
     # Need at least 2 high-quality chunks from different files
     if len(chunks) < 2:
@@ -172,6 +206,10 @@ def main():
         result = engram_search.search(topic, MEMORY_ROOT, force_chunks=True, limit=8)
 
     chunks = result.get("chunks", [])
+    if not chunks:
+        # Small corpora produce file hits but no chunks — synthesize from those.
+        chunks = chunks_from_files(result, MEMORY_ROOT)
+        result = dict(result, chunks=chunks)
     if not chunks:
         print(f"No results found for \"{topic}\". Nothing to compound.")
         return

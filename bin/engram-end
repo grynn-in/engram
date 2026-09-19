@@ -13,6 +13,11 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+# Layer registry — single source of truth for memory layers
+# shellcheck source=../lib/layers.sh
+source "$SCRIPT_DIR/../lib/layers.sh"
+
 DATE=$(date +%Y-%m-%d)
 TIME=$(date +%H:%M)
 TIMESTAMP=$(date +%Y-%m-%d_%H%M)
@@ -50,7 +55,7 @@ LAST_CHUNK=$(find "$LOSSLESS_DIR" -name "*.md" -type f 2>/dev/null | sort | tail
 
   # Files modified since last chunk
   CHANGED=""
-  for layer in semantic procedural active; do
+  for layer in $(engram_layers searchable); do
     layer_dir="$MEMORY_ROOT/$layer"
     if [ -d "$layer_dir" ]; then
       while IFS= read -r f; do
@@ -76,9 +81,6 @@ LAST_CHUNK=$(find "$LOSSLESS_DIR" -name "*.md" -type f 2>/dev/null | sort | tail
 } > "$LOSSLESS_FILE"
 
 echo "Lossless chunk written: $LOSSLESS_FILE"
-
-# Resolve script dir (must be set before first use; set -u aborts otherwise)
-SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 
 # Log usage event (non-blocking, best-effort)
 CHUNK_BYTES=$(wc -c < "$LOSSLESS_FILE" 2>/dev/null || echo 0)
