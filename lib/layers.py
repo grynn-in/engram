@@ -26,6 +26,7 @@ Named sets (see layer_set):
 import json
 import sys
 from dataclasses import dataclass, asdict
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -142,6 +143,33 @@ APPEND_ONLY_LAYERS = [l.name for l in LAYERS if l.append_only]
 SEARCHABLE_LAYERS = [l.name for l in LAYERS if not l.append_only]
 # Layers several agents may touch at once; writes need a lock.
 SHARED_LAYERS = list(CURATED_LAYERS)
+
+# Directories inside a layer that are not live knowledge. Every walk over memory
+# must skip them:
+#   .cache/    machine-local embedding cache, regenerated on demand
+#   .archive/  files superseded by `engram forget`. The whole point of forget is
+#              that the content stops coming back — while these were still
+#              walked, a forgotten file came back as the top search hit,
+#              outranking the live knowledge that replaced it.
+SKIP_DIRS = frozenset({".cache", ".archive"})
+
+
+def is_skipped(path) -> bool:
+    """True if a path sits inside a non-live directory (see SKIP_DIRS)."""
+    return any(part in SKIP_DIRS for part in Path(str(path)).parts)
+
+
+def iter_layer_files(memory_root, layers=None, pattern="*.md"):
+    """Yield (layer, path) for live knowledge files, skipping SKIP_DIRS."""
+    root = Path(memory_root)
+    for layer in (ALL_LAYERS if layers is None else layers):
+        layer_dir = root / layer
+        if not layer_dir.is_dir():
+            continue
+        for f in sorted(layer_dir.rglob(pattern)):
+            if f.is_file() and not is_skipped(f):
+                yield layer, f
+
 
 SETS = {
     "all": ALL_LAYERS,

@@ -29,6 +29,7 @@ from pathlib import Path
 # Add lib/ to path for embeddings provider support
 SCRIPT_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(SCRIPT_DIR.parent / "lib"))
+from layers import is_skipped
 from layers import search_bonus
 
 # ---------------------------------------------------------------------------
@@ -601,7 +602,7 @@ def search(query: str, memory_root: Path, force_chunks: bool = False, limit: int
     # Collect markdown file candidates
     candidates = []
     for file_path in sorted(memory_root.rglob("*.md")):
-        if ".cache" in str(file_path):
+        if is_skipped(file_path):
             continue
         try:
             content = file_path.read_text(encoding="utf-8", errors="ignore")

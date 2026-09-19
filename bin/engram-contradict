@@ -32,6 +32,7 @@ from datetime import datetime
 # Add lib/ to path
 SCRIPT_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(SCRIPT_DIR.parent / "lib"))
+from layers import is_skipped
 from layers import CURATED_LAYERS
 
 CONTRADICTIONS_FILE = ".contradictions.jsonl"
@@ -280,6 +281,8 @@ def _collect_files(memory_root: Path) -> list[dict]:
         layer_dir = memory_root / layer
         if layer_dir.is_dir():
             for fp in sorted(layer_dir.rglob("*.md")):
+                if is_skipped(fp):
+                    continue
                 if fp.name.startswith("."):
                     continue
                 try:

@@ -28,6 +28,7 @@ import shutil
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
+from layers import is_skipped
 from layers import ALL_LAYERS, TRANSFERABLE_LAYERS  # noqa: E402
 
 
@@ -67,7 +68,7 @@ def sync_layer(source_root: Path, target_root: Path, layer: str, dry_run: bool) 
     for src_file in sorted(source_dir.rglob("*")):
         if src_file.is_dir():
             continue
-        if ".cache" in str(src_file):
+        if is_skipped(src_file):
             continue
 
         rel = src_file.relative_to(source_dir)

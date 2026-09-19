@@ -26,6 +26,7 @@ from collections import defaultdict
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(SCRIPT_DIR.parent / "lib"))
+from layers import is_skipped
 from layers import CURATED_LAYERS, SEARCHABLE_LAYERS
 
 MEMORY_ROOT = Path(".claude/memory")
@@ -78,7 +79,7 @@ def find_stale_files(stale_days: int) -> list[dict]:
         if not layer_dir.is_dir():
             continue
         for f in sorted(layer_dir.rglob("*.md")):
-            if ".cache" in str(f):
+            if is_skipped(f):
                 continue
             mtime = f.stat().st_mtime
             if mtime < cutoff:
@@ -101,7 +102,7 @@ def find_empty_files() -> list[dict]:
         if not layer_dir.is_dir():
             continue
         for f in sorted(layer_dir.rglob("*.md")):
-            if ".cache" in str(f):
+            if is_skipped(f):
                 continue
             content = f.read_text(encoding="utf-8", errors="ignore").strip()
             lines = [l for l in content.splitlines() if l.strip() and not l.startswith("#")]
@@ -123,7 +124,7 @@ def find_orphans() -> list[dict]:
         if not layer_dir.is_dir():
             continue
         for f in sorted(layer_dir.rglob("*.md")):
-            if ".cache" in str(f):
+            if is_skipped(f):
                 continue
             content = f.read_text(encoding="utf-8", errors="ignore")
             if len(content.strip()) < 50:
@@ -169,7 +170,7 @@ def find_contradictions() -> list[dict]:
         if not layer_dir.is_dir():
             continue
         for f in sorted(layer_dir.rglob("*.md")):
-            if ".cache" in str(f):
+            if is_skipped(f):
                 continue
             content = f.read_text(encoding="utf-8", errors="ignore")
             if len(content.strip()) < 100:
@@ -216,7 +217,7 @@ def find_missing_topics() -> list[dict]:
         if not layer_dir.is_dir():
             continue
         for f in sorted(layer_dir.rglob("*.md")):
-            if ".cache" in str(f):
+            if is_skipped(f):
                 continue
             rel = str(f.relative_to(MEMORY_ROOT.parent))
             all_files.add(f.stem.lower())

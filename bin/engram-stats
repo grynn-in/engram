@@ -22,6 +22,7 @@ from pathlib import Path
 
 # Allow importing from lib/ next to bin/
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
+from layers import is_skipped
 from layers import ALL_LAYERS
 from engram_db import open_db
 
@@ -66,6 +67,8 @@ def _backfill_project(conn, project, memory_root):
             continue
 
         for md_file in layer_dir.rglob("*.md"):
+            if is_skipped(md_file):
+                continue
             try:
                 stat = md_file.stat()
                 mtime = datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)

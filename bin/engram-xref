@@ -22,6 +22,7 @@ from collections import defaultdict
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(SCRIPT_DIR.parent / "lib"))
+from layers import is_skipped
 from layers import CURATED_LAYERS
 
 MEMORY_ROOT = Path(".claude/memory")
@@ -66,7 +67,7 @@ def collect_files() -> list[dict]:
         if not layer_dir.is_dir():
             continue
         for f in sorted(layer_dir.rglob("*.md")):
-            if ".cache" in str(f):
+            if is_skipped(f):
                 continue
             content = f.read_text(encoding="utf-8", errors="ignore")
             if len(content.strip()) < 50:

@@ -24,8 +24,10 @@ from layers import (  # noqa: E402
     LAYERS,
     SEARCHABLE_LAYERS,
     SETS,
+    SKIP_DIRS,
     SHARED_LAYERS,
     TRANSFERABLE_LAYERS,
+    is_skipped,
     layer_of,
     layer_set,
     protocol_block,
@@ -79,6 +81,18 @@ def test_set_semantics():
     else:
         raise AssertionError("unknown set should raise, not fall back silently")
     print("  PASS: set semantics hold")
+
+
+def test_skip_dirs_cover_cache_and_archive():
+    """Every memory walk must skip these; .archive is what makes forget work."""
+    assert {".cache", ".archive"} <= set(SKIP_DIRS)
+    assert is_skipped("memory/semantic/.archive/old.md")
+    assert is_skipped("memory/.cache/embeddings.json")
+    assert is_skipped("memory/lossless/.archive/2026-01/a.md")
+    assert not is_skipped("memory/semantic/live.md")
+    assert not is_skipped("memory/traps/archive-strategy.md"), \
+        "a filename merely containing 'archive' must not be skipped"
+    print("  PASS: skip dirs cover .cache and .archive")
 
 
 def test_path_lookup_and_scoring():
@@ -188,6 +202,7 @@ if __name__ == "__main__":
     test_registry_is_coherent()
     test_new_layers_present()
     test_set_semantics()
+    test_skip_dirs_cover_cache_and_archive()
     test_path_lookup_and_scoring()
     test_protocol_block_covers_every_layer()
     test_generated_snippets_match_generator()

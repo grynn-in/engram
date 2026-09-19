@@ -18,7 +18,7 @@ from urllib.parse import parse_qs, urlparse
 
 # Layer registry — single source of truth for memory layers
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
-from layers import ALL_LAYERS, LAYERS  # noqa: E402
+from layers import ALL_LAYERS, LAYERS, is_skipped  # noqa: E402
 
 def find_memory_root():
     """Find .claude/memory/ starting from cwd, walking up."""
@@ -189,6 +189,7 @@ class EngramHandler(SimpleHTTPRequestHandler):
                 files = sorted(
                     f.name for f in layer_dir.iterdir()
                     if f.is_file() and not f.name.startswith('.')
+                    and not is_skipped(f)
                 )
                 result[layer] = files
             else:

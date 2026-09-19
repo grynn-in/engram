@@ -23,6 +23,7 @@ MEMORY_ROOT = Path(".claude/memory")
 LINK_FILE = MEMORY_ROOT / ".engram-cloud.json"
 CRED_FILE = Path.home() / ".config" / "engram" / "credentials.json"
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
+from layers import is_skipped
 from layers import ALL_LAYERS as SYNC_LAYERS  # noqa: E402
 STATE_FILE = MEMORY_ROOT / ".engram-push-state.json"
 
@@ -76,7 +77,7 @@ def scan_local_files(layers: list) -> list:
         for fpath in sorted(layer_dir.rglob("*")):
             if fpath.is_dir():
                 continue
-            if ".cache" in str(fpath):
+            if is_skipped(fpath):
                 continue
             # Skip hidden files except known ones
             if fpath.name.startswith(".") and not fpath.name.endswith(".jsonl"):
