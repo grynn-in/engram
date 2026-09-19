@@ -5,7 +5,7 @@ Engram Agent — Multi-agent isolation and coordination.
 Manages per-agent isolated workspaces within the shared memory system.
 
 Isolation model:
-  - semantic/ and procedural/ are shared (read by all, write with lock)
+  - the shared knowledge layers are read by all agents, written under lock
   - active/ is per-agent (each agent has own copy under agents/<id>/active/)
   - lossless/ is shared (append-only, conflicts impossible)
   - Conflict = same file modified by 2+ agents between merges
@@ -26,6 +26,10 @@ import json
 import shutil
 import hashlib
 from pathlib import Path
+
+# Layer registry — single source of truth for memory layers
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
+from layers import SHARED_LAYERS  # noqa: E402
 from datetime import datetime
 
 
@@ -117,7 +121,8 @@ def cmd_start(memory_root: Path, agent_id: str):
     print(f"Agent '{agent_id}' started.")
     print(f"  Workspace: {workspace}")
     print(f"  Active dir: {active_dir}")
-    print(f"  Shared layers (semantic/, procedural/, lossless/) accessible at: {memory_root}")
+    shared = ", ".join(f"{l}/" for l in SHARED_LAYERS)
+    print(f"  Shared layers ({shared}) accessible at: {memory_root}")
 
 
 def cmd_end(memory_root: Path, agent_id: str):
@@ -240,10 +245,10 @@ def cmd_conflicts(memory_root: Path):
         print("No potential conflicts (fewer than 2 active agents).")
         return
 
-    # Check shared layers (semantic/, procedural/) for modifications
+    # Check the shared knowledge layers for modifications
     conflicts = []
 
-    for layer in ("semantic", "procedural"):
+    for layer in SHARED_LAYERS:
         layer_dir = memory_root / layer
         if not layer_dir.is_dir():
             continue
@@ -316,7 +321,7 @@ def _file_hash(filepath: Path) -> str:
 def _create_snapshot(memory_root: Path) -> dict:
     """Create a hash snapshot of shared files for conflict detection."""
     snapshot = {}
-    for layer in ("semantic", "procedural"):
+    for layer in SHARED_LAYERS:
         layer_dir = memory_root / layer
         if not layer_dir.is_dir():
             continue
@@ -341,7 +346,7 @@ Usage:
   engram agent conflicts                Detect multi-agent conflicts
 
 Isolation model:
-  - semantic/, procedural/ = shared (write with lock)
+  - curated knowledge layers = shared (write with lock)
   - active/ = per-agent (isolated copy)
   - lossless/ = shared (append-only, no conflicts)
 

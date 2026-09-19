@@ -1,11 +1,12 @@
 #!/bin/bash
-# Engram — Initialize 5-layer memory system in any project.
+# Engram — Initialize the layered memory system in any project.
+# Layers are defined once in lib/layers.py; this script never names them.
 #
 # Usage:
 #   engram init [project-dir] [--template <name>]
 #
 # Creates:
-#   .claude/memory/{active,semantic,procedural,lossless}/
+#   .claude/memory/<layer>/ for every layer in lib/layers.py
 #   .claude/scripts/engram-* (symlinks to global install)
 #   Appends Engram protocol to CLAUDE.md (if not present)
 #
@@ -19,6 +20,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+# Layer registry — single source of truth for memory layers
+# shellcheck source=../lib/layers.sh
+source "$SCRIPT_DIR/../lib/layers.sh"
 ENGRAM_HOME="${ENGRAM_HOME:-$HOME/.engram}"
 
 # Parse args
@@ -43,16 +47,15 @@ done
 
 cd "$PROJECT_DIR"
 
-echo "Engram: initializing 5-layer memory in $(pwd)"
+echo "Engram: initializing $(engram_layer_count)-layer memory in $(pwd)"
 
 # 1. Create directory structure
-mkdir -p .claude/memory/active
-mkdir -p .claude/memory/semantic
-mkdir -p .claude/memory/procedural
-mkdir -p .claude/memory/lossless
+for layer in $(engram_layers all); do
+  mkdir -p ".claude/memory/$layer"
+done
 mkdir -p .claude/scripts
 
-echo "  Created .claude/memory/{active,semantic,procedural,lossless}/"
+echo "  Created .claude/memory/$(engram_layers_brace all)/"
 
 # 2. Seed active layer files
 if [ ! -f .claude/memory/active/current-tasks.md ]; then
@@ -96,7 +99,7 @@ if [ -n "$TEMPLATE" ]; then
     echo ""
     echo "  Seeding template: $TEMPLATE ($TEMPLATE_DIR)"
 
-    for layer in semantic procedural; do
+    for layer in $(engram_layers transferable); do
       if [ -d "$TEMPLATE_DIR/$layer" ]; then
         for f in "$TEMPLATE_DIR/$layer/"*; do
           [ -f "$f" ] || continue
@@ -134,63 +137,17 @@ done
 # 6. Add memory protocol to CLAUDE.md if not present
 PROTOCOL_MARKER="## Engram"
 if [ ! -f CLAUDE.md ]; then
-  cat > CLAUDE.md << 'CLAUDEMD'
-# Project — Claude Code Reference
-
-## Engram — 5-Layer Memory System
-
-You have a 5-layer memory system in `.claude/memory/`:
-
-| Layer | Path | Purpose |
-|-------|------|---------|
-| 1. Core Identity | `CLAUDE.md` | Permanent rules, always active |
-| 2. Lossless | `memory/lossless/` | Raw session transcripts (append-only) |
-| 3. Semantic | `memory/semantic/` | Distilled facts, searchable knowledge |
-| 4. Procedural | `memory/procedural/` | Workflows, standards, how-tos |
-| 5. Active | `memory/active/` | Today's tasks, context, blockers |
-
-**Retrieval priority**: Active → Semantic → Procedural → Lossless
-
-**Session workflow**:
-- Start: `engram start "topic"` (or `bash .claude/scripts/engram-start "topic"`)
-- Every 30 min: `engram end "summary"` (MANDATORY checkpoint)
-- Search: `engram search "query"`
-
-**Update rules**:
-- After every 3-4 tool calls: update `active/current-tasks.md`
-- After solving a problem: distill learnings → `semantic/`
-- After documenting a workflow: write to `procedural/`
-- Never delete memory files — supersede or append with dates
-CLAUDEMD
+  {
+    echo "# Project — Claude Code Reference"
+    echo ""
+    engram_protocol_block
+  } > CLAUDE.md
   echo "  Created CLAUDE.md with Engram protocol"
 elif ! grep -q "$PROTOCOL_MARKER" CLAUDE.md; then
-  cat >> CLAUDE.md << 'APPEND'
-
-## Engram — 5-Layer Memory System
-
-You have a 5-layer memory system in `.claude/memory/`:
-
-| Layer | Path | Purpose |
-|-------|------|---------|
-| 1. Core Identity | `CLAUDE.md` | Permanent rules, always active |
-| 2. Lossless | `memory/lossless/` | Raw session transcripts (append-only) |
-| 3. Semantic | `memory/semantic/` | Distilled facts, searchable knowledge |
-| 4. Procedural | `memory/procedural/` | Workflows, standards, how-tos |
-| 5. Active | `memory/active/` | Today's tasks, context, blockers |
-
-**Retrieval priority**: Active → Semantic → Procedural → Lossless
-
-**Session workflow**:
-- Start: `engram start "topic"` (or `bash .claude/scripts/engram-start "topic"`)
-- Every 30 min: `engram end "summary"` (MANDATORY checkpoint)
-- Search: `engram search "query"`
-
-**Update rules**:
-- After every 3-4 tool calls: update `active/current-tasks.md`
-- After solving a problem: distill learnings → `semantic/`
-- After documenting a workflow: write to `procedural/`
-- Never delete memory files — supersede or append with dates
-APPEND
+  {
+    echo ""
+    engram_protocol_block
+  } >> CLAUDE.md
   echo "  Appended Engram protocol to CLAUDE.md"
 else
   echo "  CLAUDE.md already has Engram protocol — skipped"

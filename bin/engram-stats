@@ -10,7 +10,7 @@ Flags:
   --days N         Filter to last N days (default: all)
   --history        Show recent events timeline
   --all            Show global stats across all projects
-  --backfill       One-time import from existing lossless/semantic/procedural/active files
+  --backfill       One-time import from the existing memory layer files
 
 Note: backfill scans up to 2 directory levels under ~/. For deeper projects,
 use: engram log write <layer> <path> <bytes> backfill
@@ -22,6 +22,7 @@ from pathlib import Path
 
 # Allow importing from lib/ next to bin/
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
+from layers import ALL_LAYERS
 from engram_db import open_db
 
 
@@ -59,7 +60,7 @@ def backfill():
 
 def _backfill_project(conn, project, memory_root):
     """Backfill events for a single project's memory directory."""
-    for layer in ["lossless", "semantic", "procedural", "active"]:
+    for layer in ALL_LAYERS:
         layer_dir = memory_root / layer
         if not layer_dir.is_dir():
             continue
@@ -150,7 +151,7 @@ def show_stats(project=None, days=None, show_history=False, show_all=False):
         print(f"  {'Layer':<12} {'Reads':>6} {'Writes':>7} {'Tokens':>8} {'Files':>6}")
         print("\u2500" * 48)
 
-        for layer in ["lossless", "semantic", "active", "procedural"]:
+        for layer in ALL_LAYERS:
             layer_where = f"{where} {extra} layer = ?"
             layer_params = params + [layer]
 

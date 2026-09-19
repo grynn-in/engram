@@ -25,6 +25,7 @@ from pathlib import Path
 # Add lib/ to path
 SCRIPT_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(SCRIPT_DIR.parent / "lib"))
+from layers import ALL_LAYERS
 
 from qdrant import QdrantClient, QdrantError
 
@@ -211,7 +212,7 @@ def index_memory(memory_root: Path, client: QdrantClient, collection: str, incre
 
         # Determine layer from path
         layer = "unknown"
-        for l in ["active", "semantic", "procedural", "lossless"]:
+        for l in ALL_LAYERS:
             if f"/{l}/" in str(file_path) or str(file_path).endswith(f"/{l}"):
                 layer = l
                 break
@@ -300,7 +301,7 @@ def show_status(client: QdrantClient, collection: str):
     print(f"Chunks indexed: {count}")
 
     # Show layer breakdown
-    for layer in ["semantic", "procedural", "active", "lossless"]:
+    for layer in ALL_LAYERS:
         try:
             filter_ = {"must": [{"key": "layer", "match": {"value": layer}}]}
             # Use scroll with filter to count

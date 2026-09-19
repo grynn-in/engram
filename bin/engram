@@ -1,5 +1,5 @@
 #!/bin/bash
-# Engram CLI — unified entry point for the 5-layer memory system.
+# Engram CLI — unified entry point for the layered memory system.
 #
 # Usage:
 #   engram init [path] [--template <name>]
@@ -26,7 +26,7 @@ BIN_DIR="$SCRIPT_DIR"
 
 usage() {
   cat << 'EOF'
-Engram — Persistent 5-layer memory for Claude Code
+Engram — Persistent layered memory for Claude Code
 
 Usage:
   engram init [path] [--template <name>]   Initialize memory in a project

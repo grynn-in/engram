@@ -2,7 +2,7 @@
 """
 Engram Contradict — detect contradictions across memory files.
 
-Finds conflicting statements in semantic/ and procedural/ layers using
+Finds conflicting statements across the curated knowledge layers using
 heuristic checks: negation detection, numeric mismatches, and opposition
 patterns.
 
@@ -32,6 +32,7 @@ from datetime import datetime
 # Add lib/ to path
 SCRIPT_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(SCRIPT_DIR.parent / "lib"))
+from layers import CURATED_LAYERS
 
 CONTRADICTIONS_FILE = ".contradictions.jsonl"
 SIM_THRESHOLD = 0.6
@@ -273,9 +274,9 @@ class ContradictionStore:
 # Scanning logic
 # ---------------------------------------------------------------------------
 def _collect_files(memory_root: Path) -> list[dict]:
-    """Collect markdown files from semantic/ and procedural/."""
+    """Collect markdown files from every curated knowledge layer."""
     files = []
-    for layer in ("semantic", "procedural"):
+    for layer in CURATED_LAYERS:
         layer_dir = memory_root / layer
         if layer_dir.is_dir():
             for fp in sorted(layer_dir.rglob("*.md")):
@@ -340,7 +341,7 @@ def scan_topic(topic: str, memory_root: Path, quiet: bool = False) -> list[dict]
 
 
 def scan_all(memory_root: Path) -> list[dict]:
-    """Full pairwise scan of semantic/ and procedural/ files."""
+    """Full pairwise scan of every curated knowledge layer."""
     store = ContradictionStore(memory_root)
     files = _collect_files(memory_root)
     if not files:

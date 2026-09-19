@@ -5,6 +5,11 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+# Layer registry — single source of truth for memory layers
+# shellcheck source=../lib/layers.sh
+source "$SCRIPT_DIR/../lib/layers.sh"
+
 MEMORY_ROOT=".claude/memory"
 
 if [ ! -d "$MEMORY_ROOT" ]; then
@@ -18,7 +23,7 @@ echo "===================="
 echo ""
 
 # Layer stats
-for layer in active semantic procedural lossless; do
+for layer in $(engram_layers all); do
   dir="$MEMORY_ROOT/$layer"
   if [ -d "$dir" ]; then
     count=$(find "$dir" -name "*.md" -type f 2>/dev/null | wc -l)

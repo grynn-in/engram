@@ -26,6 +26,7 @@ from collections import defaultdict
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(SCRIPT_DIR.parent / "lib"))
+from layers import CURATED_LAYERS, SEARCHABLE_LAYERS
 
 MEMORY_ROOT = Path(".claude/memory")
 STALE_DAYS = 90  # files older than this with date-sensitive content
@@ -72,7 +73,7 @@ def find_stale_files(stale_days: int) -> list[dict]:
         re.IGNORECASE
     )
 
-    for layer in ["semantic", "procedural", "active"]:
+    for layer in SEARCHABLE_LAYERS:
         layer_dir = MEMORY_ROOT / layer
         if not layer_dir.is_dir():
             continue
@@ -95,7 +96,7 @@ def find_stale_files(stale_days: int) -> list[dict]:
 def find_empty_files() -> list[dict]:
     """Find stub/empty files."""
     empty = []
-    for layer in ["semantic", "procedural"]:
+    for layer in CURATED_LAYERS:
         layer_dir = MEMORY_ROOT / layer
         if not layer_dir.is_dir():
             continue
@@ -117,7 +118,7 @@ def find_orphans() -> list[dict]:
     """Find files with no semantic connection to any other file."""
     # Collect all files and their embeddings
     files = []
-    for layer in ["semantic", "procedural"]:
+    for layer in CURATED_LAYERS:
         layer_dir = MEMORY_ROOT / layer
         if not layer_dir.is_dir():
             continue
@@ -163,7 +164,7 @@ def find_contradictions() -> list[dict]:
     """Find potential contradictions between files (same topic, different claims)."""
     # Group files by topic similarity
     files = []
-    for layer in ["semantic", "procedural"]:
+    for layer in CURATED_LAYERS:
         layer_dir = MEMORY_ROOT / layer
         if not layer_dir.is_dir():
             continue
@@ -210,7 +211,7 @@ def find_missing_topics() -> list[dict]:
     all_files = set()
     all_references = defaultdict(list)
 
-    for layer in ["semantic", "procedural"]:
+    for layer in CURATED_LAYERS:
         layer_dir = MEMORY_ROOT / layer
         if not layer_dir.is_dir():
             continue

@@ -6,16 +6,18 @@
 #   engram export my-backup.tar.gz         # export to specific file
 #   engram export --all                    # include lossless layer
 #
-# What's included (default):
-#   - semantic/    (distilled facts)
-#   - procedural/  (workflows)
-#   - active/      (current tasks)
+# What's included (default): every hand-maintained layer, per lib/layers.py
 #
 # What's excluded:
 #   - .cache/      (machine-specific embeddings, rebuilds automatically)
 #   - lossless/    (large, append-only history — use --all to include)
 
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+# Layer registry — single source of truth for memory layers
+# shellcheck source=../lib/layers.sh
+source "$SCRIPT_DIR/../lib/layers.sh"
 
 MEMORY_ROOT=".claude/memory"
 
@@ -50,16 +52,18 @@ if [ -z "$OUTPUT" ]; then
 fi
 
 # Build list of paths to include
+if [ "$INCLUDE_ALL" = true ]; then
+  EXPORT_LAYERS=$(engram_layers all)
+else
+  EXPORT_LAYERS=$(engram_layers searchable)
+fi
+
 PATHS=()
-for layer in semantic procedural active; do
+for layer in $EXPORT_LAYERS; do
   if [ -d "$MEMORY_ROOT/$layer" ]; then
     PATHS+=("$MEMORY_ROOT/$layer")
   fi
 done
-
-if [ "$INCLUDE_ALL" = true ] && [ -d "$MEMORY_ROOT/lossless" ]; then
-  PATHS+=("$MEMORY_ROOT/lossless")
-fi
 
 # Include .gitignore and any root-level memory config
 if [ -f "$MEMORY_ROOT/.gitignore" ]; then
@@ -81,16 +85,12 @@ FILE_COUNT=$(tar -tzf "$OUTPUT" | wc -l)
 echo "Exported: $OUTPUT ($SIZE, $FILE_COUNT files)"
 echo ""
 echo "Layers included:"
-for layer in semantic procedural active; do
+for layer in $EXPORT_LAYERS; do
   if [ -d "$MEMORY_ROOT/$layer" ]; then
     count=$(find "$MEMORY_ROOT/$layer" -name "*.md" -type f 2>/dev/null | wc -l)
     printf "  %-12s %d files\n" "$layer/" "$count"
   fi
 done
-if [ "$INCLUDE_ALL" = true ] && [ -d "$MEMORY_ROOT/lossless" ]; then
-  count=$(find "$MEMORY_ROOT/lossless" -name "*.md" -type f 2>/dev/null | wc -l)
-  printf "  %-12s %d files\n" "lossless/" "$count"
-fi
 
 echo ""
 echo "Excluded: .cache/ (embeddings rebuild automatically on import)"

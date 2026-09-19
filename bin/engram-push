@@ -22,7 +22,8 @@ from pathlib import Path
 MEMORY_ROOT = Path(".claude/memory")
 LINK_FILE = MEMORY_ROOT / ".engram-cloud.json"
 CRED_FILE = Path.home() / ".config" / "engram" / "credentials.json"
-SYNC_LAYERS = ["semantic", "procedural", "lossless", "active"]
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))
+from layers import ALL_LAYERS as SYNC_LAYERS  # noqa: E402
 STATE_FILE = MEMORY_ROOT / ".engram-push-state.json"
 
 

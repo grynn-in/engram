@@ -2,7 +2,7 @@
 """
 Engram Cross-Reference — generate "See also" links between related files.
 
-Scans all semantic/ and procedural/ files, finds pairs with high similarity,
+Scans every curated knowledge layer, finds pairs with high similarity,
 and appends "See also:" sections to files that lack them.
 
 Usage:
@@ -22,6 +22,7 @@ from collections import defaultdict
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(SCRIPT_DIR.parent / "lib"))
+from layers import CURATED_LAYERS
 
 MEMORY_ROOT = Path(".claude/memory")
 DEFAULT_THRESHOLD = 0.45
@@ -60,7 +61,7 @@ def cosine_similarity(a, b):
 def collect_files() -> list[dict]:
     """Collect all memory files with embeddings."""
     files = []
-    for layer in ["semantic", "procedural"]:
+    for layer in CURATED_LAYERS:
         layer_dir = MEMORY_ROOT / layer
         if not layer_dir.is_dir():
             continue

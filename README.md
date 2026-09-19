@@ -1,6 +1,6 @@
 # Engram
 
-**Persistent 5-layer memory system for Claude Code.** Gives your AI assistant cross-session recall using local semantic embeddings and structured knowledge layers.
+**Persistent 7-layer memory system for Claude Code.** Gives your AI assistant cross-session recall using local semantic embeddings and structured knowledge layers.
 
 ```bash
 # Install
@@ -33,11 +33,13 @@ Claude Code's built-in memory (`MEMORY.md`) is a single flat file limited to 200
 
 ```
 .claude/memory/
-├── active/              # Layer 5: Today's working context (mutable)
+├── active/              # Layer 7: Today's working context (mutable)
 │   ├── current-tasks.md
 │   └── context-inject.md    ← auto-populated by `engram start`
 ├── semantic/            # Layer 3: Distilled facts & patterns (searchable)
 ├── procedural/          # Layer 4: Workflows, standards, how-tos
+├── traps/               # Layer 5: Lessons learned the hard way (searchable)
+├── vision/              # Layer 6: Direction, non-goals, decisions & why
 ├── lossless/            # Layer 2: Raw session transcripts (append-only)
 └── .cache/              # Embedding cache (auto-managed, gitignored)
 ```
@@ -49,7 +51,9 @@ Claude Code's built-in memory (`MEMORY.md`) is a single flat file limited to 200
 1. **Active** — check today's tasks and auto-injected context first
 2. **Semantic** — search distilled facts via embeddings
 3. **Procedural** — find workflows and step-by-step guides
-4. **Lossless** — dig into raw session history for exact decisions
+4. **Traps** — surface what already bit you here (scored highest in search)
+5. **Vision** — check the stated direction before changing it
+6. **Lossless** — dig into raw session history for exact decisions
 
 ## Installation
 
@@ -84,7 +88,7 @@ engram init
 ```
 
 This creates:
-- `.claude/memory/{active,semantic,procedural,lossless}/`
+- `.claude/memory/{active,semantic,procedural,traps,vision,lossless}/`
 - `.claude/scripts/engram-*` (symlinks to global install)
 - Appends Engram protocol to `CLAUDE.md` (if not already present)
 
@@ -95,7 +99,7 @@ engram init --template d365    # Seeds D365 F&O knowledge
 engram init --template react   # Seeds React patterns (community)
 ```
 
-Templates pre-populate `semantic/` and `procedural/` with domain knowledge.
+Templates pre-populate the transferable layers (`semantic/`, `procedural/`, `traps/`, `vision/`) with domain knowledge.
 
 ### Session Workflow
 
@@ -167,6 +171,8 @@ Engram works by adding a protocol section to your project's `CLAUDE.md` that ins
 - Update `active/current-tasks.md` every 3-4 tool calls
 - Distill learnings into `semantic/` after solving problems
 - Document workflows in `procedural/` after first success
+- Record what bit you in `traps/` — symptom, cause, cost, how to avoid it
+- Record direction and non-goals in `vision/` — with an owner and a date
 - Run `engram end` every 30 minutes (lossless checkpoint)
 - Never delete memory files (supersede or append with dates)
 
@@ -190,7 +196,7 @@ templates/my-template/
 # From an existing project's memory
 engram template create my-domain
 
-# This exports semantic/ + procedural/ (scrubbed of project specifics)
+# This exports the transferable layers (scrubbed of project specifics)
 # into ~/.engram/templates/my-domain/
 ```
 

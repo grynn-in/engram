@@ -3,10 +3,13 @@
 
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
 ENGRAM_BIN = Path(__file__).parent.parent / "bin"
+sys.path.insert(0, str(Path(__file__).parent.parent / "lib"))
+from layers import ALL_LAYERS, LAYER_COUNT
 
 
 def run_init(project_dir: str, *extra_args) -> subprocess.CompletedProcess:
@@ -21,11 +24,10 @@ def test_basic_init():
         result = run_init(tmp)
         assert result.returncode == 0, f"Init failed: {result.stderr}"
 
-        # Check directories
-        assert (Path(tmp) / ".claude" / "memory" / "active").is_dir()
-        assert (Path(tmp) / ".claude" / "memory" / "semantic").is_dir()
-        assert (Path(tmp) / ".claude" / "memory" / "procedural").is_dir()
-        assert (Path(tmp) / ".claude" / "memory" / "lossless").is_dir()
+        # Check directories — every layer in the registry, not a hardcoded list
+        for layer in ALL_LAYERS:
+            assert (Path(tmp) / ".claude" / "memory" / layer).is_dir(), \
+                f"layer {layer}/ was not created"
         assert (Path(tmp) / ".claude" / "scripts").is_dir()
 
         # Check seed files
@@ -36,7 +38,10 @@ def test_basic_init():
         assert (Path(tmp) / "CLAUDE.md").exists()
         content = (Path(tmp) / "CLAUDE.md").read_text()
         assert "Engram" in content
-        assert "5-Layer" in content
+        assert f"{LAYER_COUNT}-Layer" in content
+        for layer in ALL_LAYERS:
+            assert f"`memory/{layer}/`" in content, \
+                f"layer {layer}/ missing from the CLAUDE.md protocol table"
 
         print("  PASS: basic init creates full structure")
 
